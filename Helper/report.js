@@ -4,7 +4,7 @@ class Report {
   constructor (request, response, table) {
     this.req = request;
     this.res = response;
-    this.table = table;
+    this.table = table; 
   }
 
   async fetchRM() {
@@ -92,6 +92,25 @@ class Report {
 
     this.res.send(transactions);
   }
+
+
+  async ReportCustomer() {
+        let startDate = this.req.body.start_date;
+        let endDate = this.req.body.end_date;
+        let id = this.req.body.id;
+        let tableName = this.table;
+        let filteredData = [];
+
+        let rows = await ( await Database.DB.query("select * from $1 where entry_date >= $2 and entry_date <= $3",[tableName, startDate, endDate])).rows;
+
+        await rows.filter( data => {
+            if( data.id === id ){
+              filteredData.push(data);
+            }
+        })
+
+        this.res.send(filteredData);
+ }
 }
 
 module.exports = { Report }

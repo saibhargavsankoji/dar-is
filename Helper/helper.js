@@ -30,6 +30,7 @@ var database = function (client, req, res) {
       if (arguments.length > 1) {
         try {
           if (arguments[1] === false) {
+            console.log(req.body);
             data = await client.query(`INSERT INTO ${arguments[0]} (${Object.keys(req.body).join(", ")}) VALUES (${valueIndex()})`, Object.values(req.body));
             return 200;
           }
