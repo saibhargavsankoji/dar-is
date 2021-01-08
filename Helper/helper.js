@@ -63,8 +63,8 @@ var database = function (client, req, res) {
       let expressionString = function () {
         let expressions = [];
 
-        for (let key in req.body.values) {
-          expressions.push(`${key} = '${req.body.values[key]}'`);
+        for (let key in req.body) {
+          expressions.push(`${key} = '${req.body[key]}'`);
         }
 
         return expressions.join(', ');

@@ -1,3 +1,4 @@
+const DataBase = require('../Helper/database');
 const Database = require('../Helper/database');
 
 class Report {
@@ -111,6 +112,15 @@ class Report {
 
         this.res.send(filteredData);
  }
+
+ async ExistingCustomer(){
+      let mobile = this.req.body.mobile;
+      let tableName = this.table;
+      let rows = await ( await DataBase.DB.query(`select * from ${tableName} where mobile = ${mobile}`)).rows;
+
+      this.res.send(rows);
+ }
+
 }
 
 module.exports = { Report }

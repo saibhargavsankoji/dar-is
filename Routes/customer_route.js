@@ -7,7 +7,8 @@ customerRouter.post('/add', async (request, response) => {
   let customerExist = async () => {
     let rows = await (await Database.DB.query('SELECT * FROM customer')).rows;
     for (var i = 0; i < rows.length; i++) {
-      if (rows[i].pan === request.body.pan || rows[i].aadhaar === request.body.aadhaar || rows[i].mobile === request.body.mobile) return true;
+      // if (rows[i].pan === request.body.pan || rows[i].aadhaar === request.body.aadhaar || rows[i].mobile === request.body.mobile) return true;
+      if (rows[i].mobile === request.body.mobile) return true;
     }
     return false;
   }
@@ -35,9 +36,10 @@ customerRouter.get('/select', async function (request, response) {
   }
 });
 
+
 customerRouter.get('/delete/:id', async (request, response) => {
   try {
-    let rowCount = await database(Database.DB, request, response).DELETE('customer', 'id');
+    let rowCount = await database(Database.DB, request, response).SELECT('customer', 'id');
 
     if (rowCount) {
       response.status(200).send(new Response('Deleted Successfully', 200)).end();
@@ -51,7 +53,7 @@ customerRouter.get('/delete/:id', async (request, response) => {
 
 customerRouter.post('/update', async (request, response) => {
   try {
-    let rowCount = await database(Database.DB, request, response).UPDATE('customer', `employee_id = ${request.body.employee_id}`);
+    let rowCount = await database(Database.DB, request, response).UPDATE('customer', `mobile = '${request.body.mobile}'`);
 
     if (rowCount) {
       response.status(200).send(new Response("Update Success", 200)).end();

@@ -3,6 +3,7 @@ var express = require('express');
 var router = express.Router();
 const { database, Response } = require('../Helper/helper');
 const Database = require('../Helper/database');
+const { response } = require('express');
 
 router.post('/add', async (request, response) => {
   let employeeExist = async () => {
@@ -61,17 +62,18 @@ router.get('/delete/:id', async (request, response) => {
 });
 
 router.post('/update', async (request, response) => {
-  try {
+ 
+  // try {
     let rowCount = await database(Database.DB, request, response).UPDATE('add_employee', `employee_id = ${request.body.employee_id}`);
-
+    console.log(rowCount);
     if (rowCount) {
       response.status(200).send(new Response(rowCount[0], 200)).end();
     } else {
       response.status(200).send(new Response('Not Found', 404)).end();
     }
-  } catch (e) {
-    response.status(400).send(e).end();
-  }
+  // } catch (e) {
+  //   response.status(400).send(e).end();
+  // }
 });
 
 router.post('/login', async (request, response) => {
@@ -94,5 +96,56 @@ router.post('/login', async (request, response) => {
     response.status(500).send(e.message).end();
   }
 });
+
+
+router.get('/telecallers', async (request, response) => {
+
+  const rows = await (await Database.DB.query("select * from add_employee where designation = 'Telecaller'")).rows
+
+response.send(rows);
+});
+
+
+router.get('/all', async (request, response)=>{
+  const rows = await (await Database.DB.query("select * from add_employee")).rows
+  response.send(rows);
+})
+
+
+
+
+router.get('/role/:id', async (request, response)=>{
+  let EmployeeData = [];
+  let data = await database(Database.DB, request, response).SELECT('add_employee', `employee_id = ${request.params.id}`);
+  
+  switch (data[0].role) {
+    case 'Admin':
+      EmployeeData = await (await Database.DB.query("select * from add_employee")).rows;
+      break;
+
+    case 'Telecaller':
+      EmployeeData = data;
+      break;
+
+    case 'Senior Team Leader':
+        let TelecallersData = await (await Database.DB.query(`select * from add_employee where role = 'Telecaller' AND team_lead_id = ${request.params.id}`)).rows
+        EmployeeData = [...data, ...TelecallersData]
+        break;
+
+    case 'Branch Manager':
+      EmployeeData = await (await Database.DB.query("select * from add_employee where role = 'Telecaller' or role = 'Sr. Telecaller'")).rows
+      break;
+    
+    case 'Sr. Relationship Manager':
+      EmployeeData = await (await Database.DB.query(`select`)).rows;
+      break;
+
+    default:
+      break;
+  }
+
+response.send(EmployeeData);
+});
+
 
 module.exports = { router };
