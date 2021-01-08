@@ -116,7 +116,7 @@ router.get('/all', async (request, response)=>{
 
 router.get('/role/:id', async (request, response)=>{
   let EmployeeData = [];
-  let data = await database(Database.DB, request, response).SELECT('add_employee', `employee_id = ${request.params.id}`);
+  let data = await database(Database.DB, request, response).SELECT('add_employee', `employee_id = '${request.params.id}'`);
   
   switch (data[0].role) {
     case 'Admin':
@@ -128,7 +128,7 @@ router.get('/role/:id', async (request, response)=>{
       break;
 
     case 'Senior Team Leader':
-        let TelecallersData = await (await Database.DB.query(`select * from add_employee where role = 'Telecaller' AND team_lead_id = ${request.params.id}`)).rows
+        let TelecallersData = await (await Database.DB.query(`select * from add_employee where role = 'Telecaller' AND team_lead_id = '${request.params.id}'`)).rows
         EmployeeData = [...data, ...TelecallersData]
         break;
 
@@ -143,8 +143,8 @@ router.get('/role/:id', async (request, response)=>{
     default:
       break;
   }
-
 response.send(EmployeeData);
+
 });
 
 
