@@ -39,7 +39,6 @@ branchReports.post('/callbacks' ,async (request, response)=>{
             for(const employee of employeesArray){
                 if(customer.employee_id === employee.employee_id){
                     customers.push({...employee, ...customer })
-                    console.log(employee)
                 }
             }
         }
@@ -61,7 +60,6 @@ branchReports.post('/closers' ,async (request, response)=>{
             for(const employee of employeesArray){
                 if(customer.employee_id === employee.employee_id){
                     customers.push({...employee, ...customer })
-                    console.log(employee)
                 }
             }
         }
@@ -82,12 +80,10 @@ branchReports.post('/rejects' ,async (request, response)=>{
             for(const employee of employeesArray){
                 if(customer.employee_id === employee.employee_id){
                     customers.push({...employee, ...customer })
-                    console.log(employee)
                 }
             }
         }
     }
-    console.log(customers)
     response.send(customers)
 });
 

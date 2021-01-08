@@ -65,7 +65,6 @@ router.post('/update', async (request, response) => {
  
   // try {
     let rowCount = await database(Database.DB, request, response).UPDATE('add_employee', `employee_id = ${request.body.employee_id}`);
-    console.log(rowCount);
     if (rowCount) {
       response.status(200).send(new Response(rowCount[0], 200)).end();
     } else {
@@ -92,7 +91,7 @@ router.post('/login', async (request, response) => {
       response.status(200).send(new Response('Bad Request', 400)).end();
     }
   } catch (e) {
-    console.log(e);
+    new Error(e);
     response.status(500).send(e.message).end();
   }
 });

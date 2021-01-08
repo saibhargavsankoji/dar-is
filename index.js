@@ -35,9 +35,10 @@ App.use('/api/existingcustomer', existingCustomer);
 // App.use(express.static('public'));
 App.use(express.static(path.join(__dirname, 'public')));
 
-App.listen(process.env.PORT || 1996, function () {
-  console.log(`Application listening on ${process.env.PORT || 1996}`);
-});
+// App.listen(process.env.PORT || 1996, function () {
+//   console.log(`Application listening on ${process.env.PORT || 1996}`);
+// });
+App.listen(process.env.PORT || 1996);
 
 App.get('/*', function (req, res) {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
