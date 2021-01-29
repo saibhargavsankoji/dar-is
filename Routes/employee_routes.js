@@ -7,7 +7,7 @@ const { response } = require('express');
 
 router.post('/add', async (request, response) => {
   let employeeExist = async () => {
-    let rows = await (await Database.DB.query('SELECT employee_id FROM add_employee')).rows;
+    let rows = await (await Database.DB.query('SELECT employee_id FROM employees')).rows;
     for (var i = 0; i < rows.length; i++) {
       if (rows[i].employee_id === request.body.employee_id) return true;
     }
@@ -15,7 +15,7 @@ router.post('/add', async (request, response) => {
   }
 
   try {
-    let status = await database(Database.DB, request, response).INSERT('add_employee', await employeeExist());
+    let status = await database(Database.DB, request, response).INSERT('employees', await employeeExist());
 
     if (status === 200) {
       response.status(200).send(new Response('Success', 200)).end();
@@ -30,7 +30,7 @@ router.post('/add', async (request, response) => {
 router.get('/select', async function (request, response) {
   var rows;
   try {
-    rows = await database(Database.DB, request, response).SELECT('add_employee');
+    rows = await database(Database.DB, request, response).SELECT('employees');
     response.status(200).send(new Response(await rows, 200)).end();
   } catch (e) {
     response.status(400).send(e).end();
@@ -40,7 +40,7 @@ router.get('/select', async function (request, response) {
 router.get('/select/:id', async (request, response) => {
   var rows;
   try {
-    rows = await database(Database.DB, request, response).SELECT('add_employee', `employee_id = '${request.params.id}'`);
+    rows = await database(Database.DB, request, response).SELECT('employees', `employee_id = '${request.params.id}'`);
     response.status(200).send(new Response(await rows, 200)).end();
   } catch (e) {
     response.status(400).send(e).end();
@@ -49,7 +49,7 @@ router.get('/select/:id', async (request, response) => {
 
 router.get('/delete/:id', async (request, response) => {
   try {
-    let rowCount = await database(Database.DB, request, response).DELETE('add_employee', 'employee_id');
+    let rowCount = await database(Database.DB, request, response).DELETE('employees', 'employee_id');
 
     if (rowCount) {
       response.status(200).send(new Response('Deleted Successfully', 200)).end();
@@ -64,7 +64,7 @@ router.get('/delete/:id', async (request, response) => {
 router.post('/update', async (request, response) => {
  
   // try {
-    let rowCount = await database(Database.DB, request, response).UPDATE('add_employee', `employee_id = ${request.body.employee_id}`);
+    let rowCount = await database(Database.DB, request, response).UPDATE('employees', `employee_id = ${request.body.employee_id}`);
     if (rowCount) {
       response.status(200).send(new Response(rowCount[0], 200)).end();
     } else {
@@ -77,7 +77,7 @@ router.post('/update', async (request, response) => {
 
 router.post('/login', async (request, response) => {
   try {
-    let data = await database(Database.DB, request, response).SELECT('add_employee', `employee_id = ${request.body.employee_id}`);
+    let data = await database(Database.DB, request, response).SELECT('employees', `employee_id = ${request.body.employee_id}`);
 
     if (data !== undefined) {
       if (data.length === 0) {
@@ -99,14 +99,14 @@ router.post('/login', async (request, response) => {
 
 router.get('/telecallers', async (request, response) => {
 
-  const rows = await (await Database.DB.query("select * from add_employee where designation = 'Telecaller'")).rows
+  const rows = await (await Database.DB.query("select * from employees where designation = 'Telecaller'")).rows
 
 response.send(rows);
 });
 
 
 router.get('/all', async (request, response)=>{
-  const rows = await (await Database.DB.query("select * from add_employee")).rows
+  const rows = await (await Database.DB.query("select * from employees")).rows
   response.send(rows);
 })
 
@@ -115,28 +115,86 @@ router.get('/all', async (request, response)=>{
 
 router.get('/role/:id', async (request, response)=>{
   let EmployeeData = [];
-  let data = await database(Database.DB, request, response).SELECT('add_employee', `employee_id = '${request.params.id}'`);
+  let TeamLeads ;
+  let TeamLeadsArray = [];
+  let SeniorTeamLeads;
+  let SeniorTeamLeadsArray = [];
+  let Telecallers;
+  let TelecallersArray = [];
+  let SeniorRelationshipManager;
+  let SeniorRelationshipManagerArray = [];
+  let RelationshipManager;
+  let RelationshipManagerArray = [];
+  
+  let data = await database(Database.DB, request, response).SELECT('employees', `employee_id = '${request.params.id}'`);
   
   switch (data[0].role) {
+    
     case 'Admin':
-      EmployeeData = await (await Database.DB.query("select * from add_employee")).rows;
+      EmployeeData = await (await Database.DB.query("select * from employees")).rows;
       break;
 
     case 'Telecaller':
       EmployeeData = data;
       break;
 
-    case 'Senior Team Leader':
-        let TelecallersData = await (await Database.DB.query(`select * from add_employee where role = 'Telecaller' AND team_lead_id = '${request.params.id}'`)).rows
-        EmployeeData = [...data, ...TelecallersData]
-        break;
+    case "Team Lead" :
+      Telecallers = await (await Database.DB.query(`select * from employees where role = 'Telecaller' AND higher_position = '${request.params.id}'`)).rows
+      EmployeeData = [...data, ...Telecallers]
+      break;
+   
+
+    case 'Senior Team Lead':
+      TeamLeads = await (await Database.DB.query(`select * from employees where role = 'Team Lead' AND higher_position = '${request.params.id}'`)).rows
+      Telecallers = await (await Database.DB.query(`select * from employees where role = 'Telecaller'`)).rows;
+
+      for(const telecaller of Telecallers){
+          for(const TeamLead of TeamLeads){
+              if(telecaller.higher_position === TeamLead.employee_id){
+                  TelecallersArray.push(telecaller);
+              }
+          }            
+      }
+
+      EmployeeData = [ ...TeamLeads, ...TelecallersArray, ...data[0]];
+    break;
+    
+    case "Telesales Manager":
+      SeniorTeamLeads = await (await Database.DB.query(`select * from employees where role='Senior Team Leader' and higher_position = '${data[0].employee_id}'`));
+      TeamLeads = await (await Database.DB.query(`select * from employees where role='Team Lead'`)).rows;
+      Telecallers = await (await Database.DB.query(`select * from employees where role='Telecaller'`)).rows;
+
+      for(const telecaller of Telecallers){
+        for(const TeamLead of TeamLeads){
+            if(telecaller.higher_position === TeamLead.employee_id){
+                TelecallersArray.push(telecaller);
+            }
+        }            
+      }
+
+ 
+        for(const Telecaller of Telecallers){
+          for(const TeamLead of TeamLeads){
+            if(Telecaller.higher_position === TeamLead.employee_id){
+              TelecallersArray.push(Telecaller);
+            }
+          }
+        }
+
+      EmployeeData = [...TelecallersArray, ...TeamLeadsArray, ...SeniorTeamLeadsArray, ...data[0]];
+      break;
 
     case 'Branch Manager':
-      EmployeeData = await (await Database.DB.query("select * from add_employee where role = 'Telecaller' or role = 'Sr. Telecaller'")).rows
+      EmployeeData = await (await Database.DB.query(`select * from employees where branch = '${data[0].branch}' and role = 'Telecaller' or role = 'Senior Team Leader'`)).rows
       break;
     
     case 'Sr. Relationship Manager':
-      EmployeeData = await (await Database.DB.query(`select`)).rows;
+      RelationshipManager = await (await Database.DB.query(`select * from employees where role = 'Relationship Manager' or higher_position = '${data[0].employee_id}'`)).rows
+      EmployeeData = [...RelationshipManager, ...data[0]]
+      break;
+
+    case 'Relationship Manager':
+      EmployeeData = data;
       break;
 
     default:
