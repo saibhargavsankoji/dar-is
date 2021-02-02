@@ -142,21 +142,21 @@ reportsRouter.post("/closers", async (request, response) => {
 });
 
 reportsRouter.get("/graphs/:id", async (request, response) => {
-    let customerData = [];
+    let CustomerData = [];
     let Appointments = [];
     let today = new Date().toLocaleDateString();
     let Callbacks = [];
     let Closers = [];
     let Rejects = [];
-    let retrivedCostomerData = []
 
     let Telecallers = [];
     let TelecallersArray = [];
     let TeamLeads = [];
     let TeamLeadsArray = [];
+    let RelationshipManager = [];
     let TotalEmployeesArray = [];
-    let Customers = [];
     let CustomersArray = [];
+    let EmployeeData = [];
 
 
     let responseData = {
@@ -168,8 +168,8 @@ reportsRouter.get("/graphs/:id", async (request, response) => {
     let employeeData = await (await Database.DB.query(`select * from employees`)).rows
     let data = await database(Database.DB, request, response).SELECT('employees', `employee_id = '${request.params.id}'`);
 
-    const returnData = (customerData) => {
-        for (let customer of customerData) {
+    const returnData = (CustomerData) => {
+        for (let customer of CustomerData) {
             for (let employee of employeeData) {
                 if (employee.employee_id == customer.employee_id) {
                     switch (customer.status) {
@@ -207,33 +207,63 @@ reportsRouter.get("/graphs/:id", async (request, response) => {
     }
 
     switch (data[0].role) {
+        
+        case 'CEO':
+        case 'NSM':
+        case 'RSM':
+            CustomerData = await (await Database.DB.query(`select * from customer where appointment_date = '${today}' or callback_date = '${today}'`)).rows;
+            returnData(CustomerData)
+        break;
 
-        case 'Admin':
-            customerData = await (await Database.DB.query(`select * from customer where appointment_date = '${today}'`)).rows;
-            returnData(customerData)
-            break;
+        case 'Zonal Manager':
+            let ZonalCustomers = [];
+            CustomerData = await (await Database.DB.query(`select * from customer where appointment_date = '${today}' or callback_date = '${today}'`)).rows;
 
+            CustomerData.map((customer) => {
+                if (customer.location === data[0].location) {
+                    ZonalCustomers.push(customer);
+                }
+            })
+
+            returnData(ZonalCustomers)
+        break; 
+            
+            
         case 'Branch Manager':
             let branchCustomers = [];
-            // customerData = await (await Database.DB.query(`select * from customer where branch = '${data[0].branch}'`)).rows;
-            customerData = await (await Database.DB.query(`select * from customer where appointment_date = '${today}' or callback_date = '${today}'`)).rows;
+            CustomerData = await (await Database.DB.query(`select * from customer where appointment_date = '${today}' or callback_date = '${today}'`)).rows;
 
-            customerData.map((customer) => {
+            CustomerData.map((customer) => {
                 if (customer.branch === data[0].branch) {
                     branchCustomers.push(customer);
                 }
             })
 
             returnData(branchCustomers)
-            break;
+        break;
+
+        case 'Sr. Relationship Manager':
+            CustomerData = await (await Database.DB.query(`select * from customer where appointment_date = '${today}' or callback_date = '${today}'`)).rows;
+            RelationshipManager = await (await Database.DB.query(`select * from employees where role = 'Relationship Manager' or higher_position = '${data[0].employee_id}'`)).rows
+            EmployeeData = [...RelationshipManager, ...data[0]];
+
+            for(const customer of CustomerData){
+                for(const employee of EmployeeData){
+                    if(customer.employee_id === employee.employee_id){
+                        CustomersArray.push(customer);
+                    }
+                }
+            }
+
+            returnData(CustomersArray)
+        break;
 
         case 'Telesales Manager':
- 
             let SeniorTeamLeads = await (await Database.DB.query(`select * from employees where role='Senior Team Leader' and higher_position = '${data[0].employee_id}'`)).rows;
             TeamLeads = await (await Database.DB.query(`select * from employees where role='Team Lead'`)).rows;
             Telecallers = await (await Database.DB.query(`select * from employees where role='Telecaller'`)).rows;
-            Customers = await (await Database.DB.query(`select * from customers where branch = '${data[0].branch}'`)).rows;
-
+            CustomerData = await (await Database.DB.query(`select * from customer where appointment_date = '${today}' or callback_date = '${today}'`)).rows;
+            
             for (const teamLead of TeamLeads) {
                 for (const seniorTeamLead of SeniorTeamLeads) {
                     if (teamLead.higher_position === seniorTeamLead.employee_id) {
@@ -252,7 +282,7 @@ reportsRouter.get("/graphs/:id", async (request, response) => {
 
             TotalEmployeesArray = [...SeniorTeamLeads, ...TeamLeadsArray, ...TelecallersArray, ...data[0]]
 
-            for (const customer of Customers) {
+            for (const customer of CustomerData) {
                 for (const employee of TotalEmployeesArray) {
                     if (customer.employee_id === employee.employee_id) {
                         CustomersArray.push(customer);
@@ -261,12 +291,13 @@ reportsRouter.get("/graphs/:id", async (request, response) => {
             }
 
             returnData(CustomersArray)
-            break;
+        break;
 
-        case 'Senior Team Leader':
+        case 'Senior Team Lead':
             TeamLeads = await (await Database.DB.query(`select * from employees where role = 'Team Lead' AND higher_position = '${request.params.id}'`)).rows
             Telecallers = await (await Database.DB.query(`select * from employees where role = 'Telecaller'`)).rows;
-            Customers = await (await Database.DB.query(`select * from customers where branch = '${data[0].branch}'`)).rows;
+            CustomerData = await (await Database.DB.query(`select * from customer where appointment_date = '${today}' or callback_date = '${today}'`)).rows;
+            
     
             for(const telecaller of Telecallers){
                 for(const TeamLead of TeamLeads){
@@ -278,7 +309,7 @@ reportsRouter.get("/graphs/:id", async (request, response) => {
 
             TotalEmployeesArray = [ ...TeamLeads, ...TelecallersArray, ...data[0]];
 
-            for (const customer of Customers) {
+            for (const customer of CustomerData) {
                 for (const employee of TotalEmployeesArray) {
                     if (customer.employee_id === employee.employee_id) {
                         CustomersArray.push(customer);
@@ -287,14 +318,13 @@ reportsRouter.get("/graphs/:id", async (request, response) => {
             }
     
             returnData(CustomersArray)
-            break;
+        break;
 
         case "Team Lead":
             Telecallers = await (await Database.DB.query(`select * from employees where role = 'Telecaller' where higher_position = ${data[0].employee_id}`)).rows;    
-            Customers = await (await Database.DB.query(`select * from customers where branch = '${data[0].branch}'`)).rows;
+            CustomerData = await (await Database.DB.query(`select * from customer where appointment_date = '${today}' or callback_date = '${today}'`)).rows;         
             TotalEmployeesArray = [...Telecallers, ...data[0]];
-
-            for (const customer of Customers) {
+            for (const customer of CustomerData) {
                 for (const employee of TotalEmployeesArray) {
                     if (customer.employee_id === employee.employee_id) {
                         CustomersArray.push(customer);
@@ -303,14 +333,23 @@ reportsRouter.get("/graphs/:id", async (request, response) => {
             }
     
             returnData(CustomersArray)
-            break;
+        break;
+
         case 'Telecaller':
-            CustomerData = await (await Database.DB.query(`select * from customer where employee_id = '${request.params.id}'`)).rows;
-            returnData(CustomerData);
-            break;
+        case 'Relationship Manager':
+            CustomerData = await (await Database.DB.query(`select * from customer where appointment_date = '${today}' or callback_date = '${today}'`)).rows;
+
+            CustomerData.map((customer) => {
+                if(customer.employee_id === data[0].employee_id){
+                    CustomersArray.push(customer);
+                }
+            })
+            
+            returnData(CustomersArray);
+        break;
 
         default:
-            break;
+        break;
     }
 
     response.send(responseData)

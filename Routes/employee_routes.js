@@ -121,44 +121,36 @@ router.get('/role/:id', async (request, response)=>{
   let SeniorTeamLeadsArray = [];
   let Telecallers;
   let TelecallersArray = [];
-  let SeniorRelationshipManager;
-  let SeniorRelationshipManagerArray = [];
   let RelationshipManager;
-  let RelationshipManagerArray = [];
   
   let data = await database(Database.DB, request, response).SELECT('employees', `employee_id = '${request.params.id}'`);
   
   switch (data[0].role) {
     
-    case 'Admin':
+    case 'CEO':
+    case 'NSM':
+    case 'RSM':
       EmployeeData = await (await Database.DB.query("select * from employees")).rows;
-      break;
-
-    case 'Telecaller':
-      EmployeeData = data;
-      break;
-
-    case "Team Lead" :
-      Telecallers = await (await Database.DB.query(`select * from employees where role = 'Telecaller' AND higher_position = '${request.params.id}'`)).rows
-      EmployeeData = [...data, ...Telecallers]
-      break;
+    break;
    
 
-    case 'Senior Team Lead':
-      TeamLeads = await (await Database.DB.query(`select * from employees where role = 'Team Lead' AND higher_position = '${request.params.id}'`)).rows
-      Telecallers = await (await Database.DB.query(`select * from employees where role = 'Telecaller'`)).rows;
+    case 'Zonal Manager':
+      EmployeeData = await (await Database.DB.query(`select * from employees where location = '${data[0].location}'`)).rows
+    break;
 
-      for(const telecaller of Telecallers){
-          for(const TeamLead of TeamLeads){
-              if(telecaller.higher_position === TeamLead.employee_id){
-                  TelecallersArray.push(telecaller);
-              }
-          }            
-      }
-
-      EmployeeData = [ ...TeamLeads, ...TelecallersArray, ...data[0]];
+    case 'Branch Manager':
+      EmployeeData = await (await Database.DB.query(`select * from employees where branch = '${data[0].branch}'`)).rows
     break;
     
+    case 'Sr. Relationship Manager':
+      RelationshipManager = await (await Database.DB.query(`select * from employees where role = 'Relationship Manager' or higher_position = '${data[0].employee_id}'`)).rows
+      EmployeeData = [...RelationshipManager, ...data[0]]
+    break;
+
+    case 'Relationship Manager':
+      EmployeeData = data;
+    break;
+      
     case "Telesales Manager":
       SeniorTeamLeads = await (await Database.DB.query(`select * from employees where role='Senior Team Leader' and higher_position = '${data[0].employee_id}'`));
       TeamLeads = await (await Database.DB.query(`select * from employees where role='Team Lead'`)).rows;
@@ -182,24 +174,36 @@ router.get('/role/:id', async (request, response)=>{
         }
 
       EmployeeData = [...TelecallersArray, ...TeamLeadsArray, ...SeniorTeamLeadsArray, ...data[0]];
-      break;
+    break;
 
-    case 'Branch Manager':
-      EmployeeData = await (await Database.DB.query(`select * from employees where branch = '${data[0].branch}' and role = 'Telecaller' or role = 'Senior Team Leader'`)).rows
-      break;
-    
-    case 'Sr. Relationship Manager':
-      RelationshipManager = await (await Database.DB.query(`select * from employees where role = 'Relationship Manager' or higher_position = '${data[0].employee_id}'`)).rows
-      EmployeeData = [...RelationshipManager, ...data[0]]
-      break;
+    case 'Senior Team Lead':
+      TeamLeads = await (await Database.DB.query(`select * from employees where role = 'Team Lead' AND higher_position = '${request.params.id}'`)).rows
+      Telecallers = await (await Database.DB.query(`select * from employees where role = 'Telecaller'`)).rows;
 
-    case 'Relationship Manager':
+      for(const telecaller of Telecallers){
+          for(const TeamLead of TeamLeads){
+              if(telecaller.higher_position === TeamLead.employee_id){
+                  TelecallersArray.push(telecaller);
+              }
+          }            
+      }
+
+      EmployeeData = [ ...TeamLeads, ...TelecallersArray, ...data[0]];
+    break;  
+
+    case "Team Lead" :
+      Telecallers = await (await Database.DB.query(`select * from employees where role = 'Telecaller' AND higher_position = '${request.params.id}'`)).rows
+      EmployeeData = [...data, ...Telecallers]
+    break;
+
+    case 'Telecaller':
       EmployeeData = data;
-      break;
+    break;
 
     default:
-      break;
+    break;
   }
+  
 response.send(EmployeeData);
 
 });
